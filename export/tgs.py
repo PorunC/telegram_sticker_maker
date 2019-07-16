@@ -66,11 +66,11 @@ def shape_to_tgs(shape):
         'bm': 0,
     }
 
-    size_x = shape['coords'][1][0] - shape['coords'][0][0]
-    size_y = shape['coords'][1][1] - shape['coords'][0][1]
+    size_x = round(shape['coords'][1][0] - shape['coords'][0][0])
+    size_y = round(shape['coords'][1][1] - shape['coords'][0][1])
 
-    center_x = shape['coords'][0][0] + size_x / 2
-    center_y = shape['coords'][0][1] + size_y / 2
+    center_x = round(shape['coords'][0][0] + size_x / 2)
+    center_y = round(shape['coords'][0][1] + size_y / 2)
 
     tgs_shape['it'] = [
         {
