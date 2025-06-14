@@ -1,3 +1,10 @@
+Important note: Telegram supports WebM stickers since 2022. Use /newvideo to create a pack of such stickers.
+============================================================================================================
+
+## It made this tool effectively obsolete. It still might have some limited scope (e.g., if you want to add stickers to an existing animated pack), or if the source GIFs are well-suitable for it (if you don't know what you're doing, they're most probably not), but otherwise it's now useless.
+
+*Theoretically*, it might receive some updates (and I'm ready to accept PRs), so I'm not archiving it yet. But most likely, I won't ever return to it. So long, and thanks for the fish.
+
 Usage
 =====
 
