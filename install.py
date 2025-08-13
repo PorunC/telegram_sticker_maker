@@ -84,8 +84,17 @@ def install_python_packages():
     if not run_command([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip']):
         log('WARNING', "pip升级失败，继续安装...")
     
-    # 安装核心依赖
-    packages = ['Pillow>=8.0.0']
+    # 检查requirements.txt
+    if os.path.exists('requirements.txt'):
+        log('INFO', "从requirements.txt安装依赖...")
+        if run_command([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt']):
+            log('SUCCESS', "所有依赖安装成功 (包含Flask Web界面)")
+            return True
+        else:
+            log('WARNING', "requirements.txt安装失败，尝试手动安装核心依赖...")
+    
+    # 手动安装核心依赖
+    packages = ['Pillow>=10.0.0', 'Flask==3.0.0', 'requests>=2.31.0', 'requests[socks]>=2.31.0', 'python-dotenv>=1.0.0']
     
     for package in packages:
         log('INFO', f"安装 {package}...")

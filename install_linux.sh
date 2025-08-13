@@ -143,10 +143,10 @@ install_python_deps() {
     # 升级 pip
     python3 -m pip install --user --upgrade pip
     
-    # 安装项目依赖
+    # 安装项目依赖 (包含Web界面和代理支持)
     if [ -f "requirements.txt" ]; then
         python3 -m pip install --user -r requirements.txt
-        log_success "Python 依赖安装完成"
+        log_success "Python 依赖安装完成 (包含Flask Web界面)"
     else
         log_warning "requirements.txt 未找到，手动安装核心依赖..."
         python3 -m pip install --user "Pillow>=8.0.0"
@@ -165,8 +165,15 @@ test_installation() {
         return 1
     fi
     
+    # 测试Web框架导入
+    if python3 -c "import flask; print('✓ Flask 导入成功')" 2>/dev/null; then
+        log_success "Flask Web框架测试通过"
+    else
+        log_error "Flask 测试失败"
+        return 1
+    fi
     
-    # 测试转换器导入
+    # 测试核心模块导入
     if python3 -c "from telegram_sticker_maker import TelegramStickerMaker; print('✓ 核心模块导入成功')" 2>/dev/null; then
         log_success "核心模块测试通过"
     else
@@ -188,8 +195,12 @@ create_launcher() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-if [ "$1" = "--gui" ] || [ $# -eq 0 ]; then
-    python3 run_gui.py
+if [ "$1" = "--web" ] || [ $# -eq 0 ]; then
+    echo "🌐 启动Web界面..."
+    python3 start_web.py
+elif [ "$1" = "--cli" ]; then
+    shift
+    python3 telegram_sticker_maker.py "$@"
 else
     python3 telegram_sticker_maker.py "$@"
 fi
@@ -208,16 +219,21 @@ show_usage() {
     echo
     echo "使用方法:"
     echo
+    echo "🌐 Web界面 (推荐):"
+    echo "   ./telegram-sticker-maker                  # 启动Web界面"
+    echo "   ./telegram-sticker-maker --web            # 同上"
+    echo "   或: python3 start_web.py"
+    echo
     echo "💻 命令行使用:"
-    echo "   ./telegram-sticker-maker input.gif"
+    echo "   ./telegram-sticker-maker --cli input.gif"
     echo "   或: python3 telegram_sticker_maker.py input.gif"
     echo
     echo "📖 查看帮助:"
     echo "   python3 telegram_sticker_maker.py --help"
     echo
     echo "示例:"
-    echo "  ./telegram-sticker-maker dance.gif         # 转换单个文件"
-    echo "  ./telegram-sticker-maker ./images/ --pack-name MyPack  # 批量转换"
+    echo "  ./telegram-sticker-maker                   # Web界面"
+    echo "  ./telegram-sticker-maker --cli dance.gif  # 命令行转换"
     echo
     echo "故障排除:"
     echo "  - 如果遇到权限问题，尝试: chmod +x ./telegram-sticker-maker"
@@ -239,7 +255,7 @@ main() {
     # 询问用户是否继续
     echo "即将安装以下依赖:"
     echo "  - Python 3.7+"
-    echo "  - Python 包: Pillow"
+    echo "  - Python 包: Pillow, Flask, requests (含代理支持)"
     echo "  - 系统包: python3-tk, ffmpeg"
     echo
     read -p "是否继续安装？[y/N] " -n 1 -r

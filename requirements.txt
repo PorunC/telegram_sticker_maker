@@ -1,7 +1,15 @@
 # Telegram Sticker Maker - Python依赖
 
 # 核心图像处理
-Pillow>=8.0.0
+Pillow>=10.0.0
+
+# Web界面和API请求
+Flask==3.0.0
+Flask-CORS==4.0.0
+requests>=2.31.0
+requests[socks]>=2.31.0
+python-dotenv>=1.0.0
 
 # 系统依赖 (需要手动安装):
-# - ffmpeg (用于WebM转换)
+# - ffmpeg (用于WebM转换和视频处理)
+# - gifsicle (用于GIF处理，可选)

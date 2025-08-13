@@ -147,13 +147,13 @@ install_python_deps() {
     # 升级 pip
     python3 -m pip install --upgrade pip
     
-    # 安装项目依赖
+    # 安装项目依赖 (包含Web界面和代理支持)
     if [ -f "requirements.txt" ]; then
         python3 -m pip install -r requirements.txt
-        log_success "Python 依赖安装完成"
+        log_success "Python 依赖安装完成 (包含Flask Web界面)"
     else
         log_warning "requirements.txt 未找到，手动安装核心依赖..."
-        python3 -m pip install "Pillow>=8.0.0"
+        python3 -m pip install "Pillow>=10.0.0" "Flask==3.0.0" "requests>=2.31.0"
     fi
 }
 

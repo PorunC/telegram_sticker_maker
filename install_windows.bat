@@ -73,16 +73,27 @@ if %errorlevel% neq 0 (
     echo ⚠️ pip 升级失败，继续安装...
 )
 
-echo 📦 安装 Pillow...
-python -m pip install "Pillow>=8.0.0"
+REM 检查是否有requirements.txt
+if exist "requirements.txt" (
+    echo 📦 安装所有Python依赖 (包含Web界面)...
+    python -m pip install -r requirements.txt
+    if %errorlevel% neq 0 (
+        echo ❌ 依赖安装失败
+        echo 尝试单独安装核心依赖...
+        python -m pip install "Pillow>=10.0.0" "Flask==3.0.0" "requests>=2.31.0"
+    )
+) else (
+    echo 📦 安装核心Python依赖...
+    python -m pip install "Pillow>=10.0.0" "Flask==3.0.0" "requests>=2.31.0"
+)
 if %errorlevel% neq 0 (
-    echo ❌ Pillow 安装失败
+    echo ❌ Python依赖安装失败
     echo 可能原因: 网络问题或权限不足
-    echo 尝试手动安装: pip install Pillow
+    echo 尝试手动安装: pip install -r requirements.txt
     pause
     exit /b 1
 )
-echo ✅ Pillow 安装成功
+echo ✅ Python依赖安装成功 (包含Flask Web界面)
 
 echo.
 echo =====================================
