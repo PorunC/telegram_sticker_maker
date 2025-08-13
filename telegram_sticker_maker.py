@@ -116,6 +116,45 @@ class TelegramStickerMaker:
             self.logger.warning(f"Telegram API uploader not available: {e}")
             self.telegram_uploader_class = None
     
+    def _get_proxy_config(self) -> Optional[Dict]:
+        """获取代理配置"""
+        try:
+            from telegram_api_uploader import load_env_file
+            
+            env_vars = load_env_file()
+            
+            if env_vars.get('PROXY_ENABLED') != 'true':
+                return None
+            
+            proxy_type = env_vars.get('PROXY_TYPE', 'http')
+            proxy_host = env_vars.get('PROXY_HOST', '')
+            proxy_port = env_vars.get('PROXY_PORT', '')
+            
+            if not proxy_host or not proxy_port:
+                return None
+            
+            # 构建代理URL
+            if env_vars.get('PROXY_AUTH_ENABLED') == 'true':
+                username = env_vars.get('PROXY_USERNAME', '')
+                password = env_vars.get('PROXY_PASSWORD', '')
+                if username and password:
+                    if proxy_type == 'http':
+                        proxy_url = f"http://{username}:{password}@{proxy_host}:{proxy_port}"
+                    else:
+                        proxy_url = f"{proxy_type}://{username}:{password}@{proxy_host}:{proxy_port}"
+                else:
+                    proxy_url = f"{proxy_type}://{proxy_host}:{proxy_port}"
+            else:
+                proxy_url = f"{proxy_type}://{proxy_host}:{proxy_port}"
+            
+            return {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+        except Exception as e:
+            self.logger.warning(f"Failed to get proxy config: {e}")
+            return None
+    
     def analyze_input(self, input_path: str) -> Dict[str, Any]:
         """分析输入文件特征"""
         if not os.path.exists(input_path):
@@ -434,7 +473,8 @@ class TelegramStickerMaker:
         
         try:
             # 创建上传器实例
-            uploader = self.telegram_uploader_class(self.config.bot_token)
+            proxy_config = self._get_proxy_config()
+            uploader = self.telegram_uploader_class(self.config.bot_token, proxy_config)
             
             # 收集表情包文件
             sticker_files = [sticker['output_path'] for sticker in results['stickers']]
