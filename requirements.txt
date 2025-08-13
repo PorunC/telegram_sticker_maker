@@ -1,3 +1,7 @@
-kaitaistruct
-svgwrite
-numpy
+# Telegram Sticker Maker - Python依赖
+
+# 核心图像处理
+Pillow>=8.0.0
+
+# 系统依赖 (需要手动安装):
+# - ffmpeg (用于WebM转换)

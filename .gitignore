@@ -1,2 +1,10 @@
 __pycache__
 *.tgs
+
+# Environment variables
+.env
+telegram_bot.conf
+
+# Output directories
+output/
+temp/
