@@ -8,3 +8,8 @@ telegram_bot.conf
 # Output directories
 output/
 temp/
+
+*.jpg
+*.webm
+*.gif
+*.json
