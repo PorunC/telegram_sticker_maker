@@ -18,10 +18,15 @@ from urllib.parse import urljoin
 class TelegramStickerUploader:
     """Telegram 表情包自动上传器"""
     
-    def __init__(self, bot_token: str):
+    def __init__(self, bot_token: str, proxy_config: Dict = None):
         self.bot_token = bot_token
         self.api_base = f"https://api.telegram.org/bot{bot_token}/"
+        self.proxy_config = proxy_config or {}
         self.logger = self._setup_logger()
+        
+        # 初始化默认属性
+        self.bot_info = None
+        self.bot_username = "unknown"
         
         # 验证 Bot Token
         if not self._validate_token():
@@ -41,7 +46,9 @@ class TelegramStickerUploader:
             response = self._api_request('getMe')
             if response and response.get('ok'):
                 bot_info = response['result']
-                self.logger.info(f"✓ Connected to bot: @{bot_info.get('username', 'unknown')}")
+                self.bot_info = bot_info  # 保存bot信息
+                self.bot_username = bot_info.get('username', 'unknown')  # 保存bot用户名
+                self.logger.info(f"✓ Connected to bot: @{self.bot_username}")
                 return True
         except Exception as e:
             self.logger.error(f"Token validation failed: {e}")
@@ -53,13 +60,30 @@ class TelegramStickerUploader:
         
         try:
             if files:
-                response = requests.post(url, data=data, files=files, timeout=30)
+                response = requests.post(url, data=data, files=files, proxies=self.proxy_config, timeout=30)
             else:
-                # 对于某些API方法（如createNewStickerSet），使用form-data而不是JSON
-                if method in ['createNewStickerSet', 'addStickerToSet']:
-                    response = requests.post(url, data=data, timeout=30)
+                # 对于某些API方法，使用form-data而不是JSON
+                # 包含数组参数的方法也需要用form-data格式
+                if method in ['createNewStickerSet', 'addStickerToSet', 'setStickerPositionInSet', 'deleteStickerFromSet', 'deleteStickerSet', 'setStickerSetTitle', 'setStickerSetThumbnail', 'setStickerEmojiList', 'setStickerKeywords']:
+                    # 对于包含数组的方法，需要特殊处理数组参数
+                    if method in ['setStickerEmojiList', 'setStickerKeywords']:
+                        prepared_data = {}
+                        for key, value in data.items():
+                            if isinstance(value, list):
+                                # 对于数组参数，使用JSON格式传递
+                                prepared_data[key] = json.dumps(value, ensure_ascii=False)
+                            else:
+                                prepared_data[key] = value
+                        response = requests.post(url, data=prepared_data, proxies=self.proxy_config, timeout=30)
+                    else:
+                        response = requests.post(url, data=data, proxies=self.proxy_config, timeout=30)
                 else:
-                    response = requests.post(url, json=data, timeout=30)
+                    # 其他方法使用JSON格式
+                    response = requests.post(url, json=data, proxies=self.proxy_config, timeout=30)
+            
+            # 记录请求详情用于调试
+            if method in ['setStickerEmojiList', 'setStickerKeywords']:
+                self.logger.info(f"API request for {method}: {data}")
             
             response.raise_for_status()
             result = response.json()
@@ -76,9 +100,15 @@ class TelegramStickerUploader:
             self.logger.error(f"API request failed for {method}: {e}")
             try:
                 if e.response:
-                    error_response = e.response.json()
-                    self.logger.error(f"Telegram API error detail: {error_response}")
-                    return error_response  # 返回错误响应而不是None
+                    try:
+                        error_response = e.response.json()
+                        self.logger.error(f"Telegram API error detail: {error_response}")
+                        return error_response
+                    except:
+                        # 如果无法解析JSON，记录原始响应文本
+                        response_text = e.response.text[:500]  # 限制日志长度
+                        self.logger.error(f"API response text: {response_text}")
+                        return {'ok': False, 'description': f'HTTP {e.response.status_code}: {response_text}'}
             except:
                 pass
             return None
@@ -109,10 +139,11 @@ class TelegramStickerUploader:
             }
             
             # 根据Telegram API文档，参数应该是sticker_type
+            # 注意：Telegram API中sticker_type只有'regular'、'mask'(已废弃)、'custom_emoji'三种
             sticker_type_map = {
                 'static': 'regular',
-                'video': 'video',
-                'animated': 'animated'
+                'video': 'regular',     # 视频贴纸也是regular类型  
+                'animated': 'regular'   # 动画贴纸也是regular类型
             }
             
             data = {
@@ -147,17 +178,18 @@ class TelegramStickerUploader:
         self.logger.info(f"Creating sticker set: {title}")
         
         # 根据Telegram API文档，参数应该是sticker_type而不是sticker_format
+        # 注意：Telegram API中sticker_type只有'regular'、'mask'(已废弃)、'custom_emoji'三种
         sticker_type_map = {
             'static': 'regular',
-            'video': 'video', 
-            'animated': 'animated'
+            'video': 'regular',     # 视频贴纸也是regular类型
+            'animated': 'regular'   # 动画贴纸也是regular类型
         }
         
         data = {
             'user_id': user_id,
             'name': name,
             'title': title,
-            'stickers': json.dumps(stickers),
+            'stickers': json.dumps(stickers, ensure_ascii=False),
             'sticker_type': sticker_type_map.get(sticker_format, 'regular')
         }
         
@@ -176,13 +208,23 @@ class TelegramStickerUploader:
         """创建新的表情包（直接上传文件）"""
         self.logger.info(f"Creating sticker set with files: {title}")
         
-        # 根据最新的Telegram Bot API，不再需要sticker_type参数
-        # API会根据InputSticker对象中的format字段自动识别类型
+        # 确定sticker_type参数
+        # 注意：Telegram API中sticker_type只有'regular'、'mask'(已废弃)、'custom_emoji'三种
+        # 视频贴纸也是'regular'类型，通过format字段区分
+        sticker_type_map = {
+            'static': 'regular',
+            'video': 'regular',     # 视频贴纸也是regular类型
+            'animated': 'regular'   # 动画贴纸也是regular类型
+        }
+        
+        # 根据最新的Telegram Bot API规范构建请求数据
+        # 使用ensure_ascii=False避免emoji被转义
         data = {
-            'user_id': user_id,
+            'user_id': str(user_id),
             'name': name,
             'title': title,
-            'stickers': json.dumps(stickers)  # InputSticker对象数组
+            'sticker_type': sticker_type_map.get(sticker_format, 'regular'),
+            'stickers': json.dumps(stickers, ensure_ascii=False)
         }
         
         # 准备文件数据
@@ -214,7 +256,7 @@ class TelegramStickerUploader:
         data = {
             'user_id': user_id,
             'name': name,
-            'sticker': json.dumps(sticker)
+            'sticker': json.dumps(sticker, ensure_ascii=False)
         }
         
         response = self._api_request('addStickerToSet', data=data)
@@ -236,9 +278,151 @@ class TelegramStickerUploader:
             return response['result']
         return None
     
+    # ========== CRUD 扩展功能 ==========
+    
+    def delete_sticker_from_set(self, sticker_file_id: str) -> bool:
+        """从表情包中删除单个贴纸"""
+        self.logger.info(f"Deleting sticker: {sticker_file_id}")
+        
+        data = {'sticker': sticker_file_id}
+        response = self._api_request('deleteStickerFromSet', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker deleted successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to delete sticker: {error_msg}")
+            return False
+    
+    def delete_sticker_set(self, name: str) -> bool:
+        """完全删除表情包"""
+        self.logger.info(f"Deleting sticker set: {name}")
+        
+        data = {'name': name}
+        response = self._api_request('deleteStickerSet', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker set deleted successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to delete sticker set: {error_msg}")
+            return False
+    
+    def set_sticker_position_in_set(self, sticker_file_id: str, position: int) -> bool:
+        """调整贴纸在表情包中的位置"""
+        self.logger.info(f"Moving sticker {sticker_file_id} to position {position}")
+        
+        data = {
+            'sticker': sticker_file_id,
+            'position': position
+        }
+        response = self._api_request('setStickerPositionInSet', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker position updated successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to update sticker position: {error_msg}")
+            return False
+    
+    def set_sticker_emoji_list(self, sticker_file_id: str, emoji_list: List[str]) -> bool:
+        """修改贴纸的emoji列表"""
+        self.logger.info(f"Updating emoji list for sticker {sticker_file_id}: {emoji_list}")
+        
+        data = {
+            'sticker': sticker_file_id,
+            'emoji_list': emoji_list  # 直接传递数组，不需要JSON编码
+        }
+        # 根据最新API，这些方法需要用form-data格式
+        response = self._api_request('setStickerEmojiList', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker emoji list updated successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to update emoji list: {error_msg}")
+            return False
+    
+    def set_sticker_keywords(self, sticker_file_id: str, keywords: List[str] = None) -> bool:
+        """修改贴纸的搜索关键词"""
+        keywords = keywords or []
+        self.logger.info(f"Updating keywords for sticker {sticker_file_id}: {keywords}")
+        
+        data = {
+            'sticker': sticker_file_id,
+            'keywords': keywords  # 直接传递数组，不需要JSON编码
+        }
+        response = self._api_request('setStickerKeywords', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker keywords updated successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to update keywords: {error_msg}")
+            return False
+    
+    def set_sticker_set_title(self, name: str, title: str) -> bool:
+        """修改表情包标题"""
+        self.logger.info(f"Updating sticker set title: {name} -> {title}")
+        
+        data = {
+            'name': name,
+            'title': title
+        }
+        response = self._api_request('setStickerSetTitle', data=data)
+        
+        if response and response.get('ok'):
+            self.logger.info("✓ Sticker set title updated successfully")
+            return True
+        else:
+            error_msg = response.get('description', 'Unknown error') if response else 'No response'
+            self.logger.error(f"Failed to update sticker set title: {error_msg}")
+            return False
+    
+    def set_sticker_set_thumbnail(self, name: str, user_id: int, thumbnail_path: str = None) -> bool:
+        """设置表情包缩略图"""
+        self.logger.info(f"Setting thumbnail for sticker set: {name}")
+        
+        data = {
+            'name': name,
+            'user_id': user_id
+        }
+        
+        files = None
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            files = {
+                'thumbnail': open(thumbnail_path, 'rb')
+            }
+            data['thumbnail'] = 'attach://thumbnail'
+        
+        try:
+            response = self._api_request('setStickerSetThumbnail', data=data, files=files)
+            
+            if response and response.get('ok'):
+                self.logger.info("✓ Sticker set thumbnail updated successfully")
+                return True
+            else:
+                error_msg = response.get('description', 'Unknown error') if response else 'No response'
+                self.logger.error(f"Failed to update thumbnail: {error_msg}")
+                return False
+        finally:
+            if files:
+                files['thumbnail'].close()
+    
     def upload_sticker_pack(self, user_id: int, pack_name: str, pack_title: str,
                            sticker_files: List[str], emojis: List[str] = None) -> Dict[str, Any]:
         """上传完整的表情包"""
+        
+        # 确保包名包含_by_botname后缀
+        if not pack_name.endswith(f"_by_{self.bot_username}"):
+            pack_name = self.generate_pack_name(pack_name, user_id)
+            self.logger.info(f"Generated full pack name: {pack_name}")
+        
         result = {
             'success': False,
             'pack_name': pack_name,
@@ -297,11 +481,15 @@ class TelegramStickerUploader:
                 'animated': 'animated'
             }
             
+            # 构建符合Telegram API规范的InputSticker对象
             sticker_data = {
                 'sticker': f"attach://{file_key}",
-                'emoji_list': [emoji],
-                'format': format_map.get(sticker_format, 'static')
+                'format': format_map.get(sticker_format, 'static'),
+                'emoji_list': [emoji]
             }
+            # 确保emoji_list中至少有一个emoji
+            if not sticker_data['emoji_list'] or sticker_data['emoji_list'][0] == '':
+                sticker_data['emoji_list'] = ['😀']
             sticker_data_list.append(sticker_data)
             result['uploaded_count'] += 1
         
@@ -347,8 +535,7 @@ class TelegramStickerUploader:
             clean_name = clean_name[:30]
         
         # 获取 bot username
-        bot_info = self._api_request('getMe')
-        bot_username = bot_info['result']['username'] if bot_info and bot_info.get('ok') else 'bot'
+        bot_username = self.bot_username
         
         # 生成候选名称
         timestamp = int(time.time())
@@ -378,6 +565,176 @@ class TelegramStickerUploader:
         
         self.logger.info(f"Generated pack name: {final_name}")
         return final_name
+    
+    # ========== 高级管理功能 ==========
+    
+    def analyze_sticker_set(self, name: str) -> Dict[str, Any]:
+        """分析表情包详细信息"""
+        self.logger.info(f"Analyzing sticker set: {name}")
+        
+        sticker_set = self.get_sticker_set(name)
+        if not sticker_set:
+            return {'error': 'Sticker set not found'}
+        
+        analysis = {
+            'name': sticker_set['name'],
+            'title': sticker_set['title'],
+            'sticker_type': sticker_set.get('sticker_type', 'regular'),
+            'is_animated': sticker_set.get('is_animated', False),
+            'is_video': sticker_set.get('is_video', False),
+            'total_stickers': len(sticker_set['stickers']),
+            'stickers': [],
+            'emoji_stats': {},
+            'keyword_stats': {}
+        }
+        
+        for i, sticker in enumerate(sticker_set['stickers']):
+            sticker_info = {
+                'position': i,
+                'file_id': sticker['file_id'],
+                'width': sticker['width'],
+                'height': sticker['height'],
+                'emoji': sticker['emoji'],
+                'set_name': sticker['set_name'],
+                'file_size': sticker.get('file_size', 'Unknown')
+            }
+            
+            # 统计emoji使用情况
+            emoji = sticker['emoji']
+            if emoji in analysis['emoji_stats']:
+                analysis['emoji_stats'][emoji] += 1
+            else:
+                analysis['emoji_stats'][emoji] = 1
+            
+            analysis['stickers'].append(sticker_info)
+        
+        return analysis
+    
+    def batch_update_emojis(self, sticker_updates: List[Dict]) -> Dict[str, Any]:
+        """批量更新贴纸emoji"""
+        self.logger.info(f"Batch updating emojis for {len(sticker_updates)} stickers")
+        
+        result = {
+            'total': len(sticker_updates),
+            'successful': 0,
+            'failed': 0,
+            'errors': []
+        }
+        
+        for update in sticker_updates:
+            file_id = update.get('file_id')
+            emoji_list = update.get('emoji_list', [])
+            
+            if not file_id or not emoji_list:
+                result['failed'] += 1
+                result['errors'].append(f"Missing file_id or emoji_list for update")
+                continue
+            
+            if self.set_sticker_emoji_list(file_id, emoji_list):
+                result['successful'] += 1
+            else:
+                result['failed'] += 1
+                result['errors'].append(f"Failed to update emoji for {file_id}")
+        
+        return result
+    
+    def reorganize_sticker_set(self, name: str, new_positions: List[str]) -> Dict[str, Any]:
+        """重组表情包顺序"""
+        self.logger.info(f"Reorganizing sticker set: {name}")
+        
+        result = {
+            'total': len(new_positions),
+            'successful': 0,
+            'failed': 0,
+            'errors': []
+        }
+        
+        for position, file_id in enumerate(new_positions):
+            if self.set_sticker_position_in_set(file_id, position):
+                result['successful'] += 1
+            else:
+                result['failed'] += 1
+                result['errors'].append(f"Failed to move sticker {file_id} to position {position}")
+        
+        return result
+    
+    def clone_sticker_set(self, source_name: str, target_name: str, target_title: str, 
+                         user_id: int) -> Dict[str, Any]:
+        """克隆表情包"""
+        self.logger.info(f"Cloning sticker set: {source_name} -> {target_name}")
+        
+        # 获取源表情包信息
+        source_set = self.get_sticker_set(source_name)
+        if not source_set:
+            return {'success': False, 'error': 'Source sticker set not found'}
+        
+        # 准备新表情包的贴纸数据
+        stickers_data = []
+        for sticker in source_set['stickers']:
+            sticker_info = {
+                'sticker': sticker['file_id'],  # 使用现有file_id
+                'emoji_list': [sticker['emoji']],
+                'format': self._detect_sticker_format(source_set)
+            }
+            stickers_data.append(sticker_info)
+        
+        # 创建新表情包
+        format_type = self._detect_sticker_format(source_set)
+        if self.create_sticker_set(user_id, target_name, target_title, stickers_data, format_type):
+            return {
+                'success': True, 
+                'pack_url': f"https://t.me/addstickers/{target_name}",
+                'cloned_stickers': len(stickers_data)
+            }
+        else:
+            return {'success': False, 'error': 'Failed to create cloned sticker set'}
+    
+    def _detect_sticker_format(self, sticker_set: Dict) -> str:
+        """检测表情包格式"""
+        if sticker_set.get('is_video'):
+            return 'video'
+        elif sticker_set.get('is_animated'):
+            return 'animated'  
+        else:
+            return 'static'
+    
+    def list_my_sticker_sets(self, bot_username: str) -> List[str]:
+        """列出Bot创建的所有表情包（需要通过命名约定推测）"""
+        # 注意：Telegram API没有直接列出所有表情包的方法
+        # 这里返回一个基于命名约定的搜索建议
+        
+        self.logger.info("Listing sticker sets created by this bot")
+        self.logger.info("Note: Telegram API doesn't provide a direct method to list all sets")
+        self.logger.info(f"Bot's sticker sets should end with '_by_{bot_username}'")
+        
+        # 返回命名约定信息
+        return [f"*_by_{bot_username}"]
+    
+    def backup_sticker_set(self, name: str) -> Dict[str, Any]:
+        """备份表情包信息到JSON"""
+        self.logger.info(f"Backing up sticker set: {name}")
+        
+        analysis = self.analyze_sticker_set(name)
+        if 'error' in analysis:
+            return analysis
+        
+        backup_data = {
+            'backup_time': time.time(),
+            'sticker_set': analysis
+        }
+        
+        # 保存备份文件
+        backup_filename = f"sticker_backup_{name}_{int(time.time())}.json"
+        try:
+            with open(backup_filename, 'w', encoding='utf-8') as f:
+                json.dump(backup_data, f, indent=2, ensure_ascii=False)
+            
+            self.logger.info(f"✓ Backup saved to {backup_filename}")
+            return {'success': True, 'backup_file': backup_filename}
+        
+        except Exception as e:
+            self.logger.error(f"Failed to save backup: {e}")
+            return {'success': False, 'error': str(e)}
 
 
 def load_env_file(env_path: str = ".env") -> Dict[str, str]:
