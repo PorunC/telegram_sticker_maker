@@ -149,14 +149,30 @@ def show_usage_info():
 
 def start_web_server():
     """启动Web服务器"""
-    print("🚀 启动Web服务器...")
-    print("   按 Ctrl+C 停止服务")
+    # 获取端口号，支持环境变量和命令行参数
+    port = int(os.environ.get('PORT', 5000))
+    
+    # 检查命令行参数中的端口
+    import sys
+    for i, arg in enumerate(sys.argv):
+        if arg == '--port' and i + 1 < len(sys.argv):
+            try:
+                port = int(sys.argv[i + 1])
+                break
+            except ValueError:
+                pass
+    
+    print(f"🚀 启动Web服务器...")
+    print(f"   地址: http://0.0.0.0:{port}")
+    print(f"   按 Ctrl+C 停止服务")
     print()
     
     try:
         # 导入并运行Web服务器
         from web_server import app
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        # 生产环境关闭debug模式
+        debug_mode = os.environ.get('FLASK_ENV', 'development') == 'development'
+        app.run(debug=debug_mode, host='0.0.0.0', port=port)
     except KeyboardInterrupt:
         print("\n\n👋 Web服务器已停止")
     except Exception as e:

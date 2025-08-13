@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: telegram-sticker-maker
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start_web.py --port $PORT
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_USER_ID  
+        sync: false
+      - key: DEFAULT_EMOJI
+        value: 😀
+      - key: PROXY_ENABLED
+        value: false
+    healthCheckPath: /
+    domains:
+      - telegram-sticker-maker.onrender.com
