@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "start_web.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "start_web.py"
+    }
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "",
+    "TELEGRAM_USER_ID": "",
+    "DEFAULT_EMOJI": "😀",
+    "PROXY_ENABLED": "false"
+  },
+  "functions": {
+    "start_web.py": {
+      "maxDuration": 60
+    }
+  }
+}
