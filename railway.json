@@ -17,7 +17,9 @@
         "TELEGRAM_BOT_TOKEN": "",
         "TELEGRAM_USER_ID": "",
         "DEFAULT_EMOJI": "😀",
-        "PROXY_ENABLED": "false"
+        "PROXY_ENABLED": "false",
+        "CI": "true",
+        "FLASK_ENV": "production"
       }
     }
   }

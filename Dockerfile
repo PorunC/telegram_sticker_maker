@@ -25,6 +25,8 @@ RUN mkdir -p uploads
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
+ENV CI=true
+ENV FLASK_ENV=production
 
 # 暴露端口
 EXPOSE 8080

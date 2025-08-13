@@ -14,6 +14,10 @@ services:
         value: 😀
       - key: PROXY_ENABLED
         value: false
+      - key: CI
+        value: true
+      - key: FLASK_ENV
+        value: production
     healthCheckPath: /
     domains:
       - telegram-sticker-maker.onrender.com

@@ -197,18 +197,27 @@ def main():
         sys.exit(1)
     
     # 检查外部依赖（非强制）
+    # 检查是否在交互环境中
+    is_interactive = sys.stdin.isatty() and os.environ.get('CI') != 'true'
+    
     if not check_external_dependencies():
         print("\n⚠️  外部依赖缺失，部分功能可能无法使用")
-        response = input("是否继续启动? (y/N): ").strip().lower()
-        if response not in ['y', 'yes']:
-            print("👋 已取消启动")
-            sys.exit(0)
+        if is_interactive:
+            response = input("是否继续启动? (y/N): ").strip().lower()
+            if response not in ['y', 'yes']:
+                print("👋 已取消启动")
+                sys.exit(0)
+        else:
+            print("🚀 云环境检测：自动继续启动...")
     
     # 显示使用说明
     show_usage_info()
     
-    # 等待用户确认
-    input("按回车键启动Web服务器...")
+    # 只在交互环境中等待用户确认
+    if is_interactive:
+        input("按回车键启动Web服务器...")
+    else:
+        print("🚀 云环境检测：自动启动Web服务器...")
     
     # 启动服务器
     start_web_server()
