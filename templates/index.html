@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram 表情包制作器</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-emoji-smile"></i> Telegram 表情包制作器
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#create" data-tab="create">
+                            <i class="bi bi-plus-circle"></i> 制作表情包
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#manage" data-tab="manage">
+                            <i class="bi bi-gear"></i> 管理表情包
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#config" data-tab="config">
+                            <i class="bi bi-sliders"></i> 设置
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- 状态提示区域 -->
+        <div id="alert-container"></div>
+
+        <!-- 配置状态卡片 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator" id="bot-status">
+                                        <i class="bi bi-circle-fill text-danger"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h6 class="mb-0">Bot 连接状态</h6>
+                                        <small class="text-muted" id="bot-info">未配置</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <button class="btn btn-outline-primary btn-sm" id="refresh-config">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新状态
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 标签页内容 -->
+        <div class="tab-content">
+            <!-- 制作表情包页面 -->
+            <div class="tab-pane active" id="create">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-gradient-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-cloud-upload"></i> 上传文件
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- 文件上传区域 -->
+                                <div class="upload-zone" id="upload-zone">
+                                    <div class="upload-content">
+                                        <i class="bi bi-cloud-arrow-up-fill upload-icon"></i>
+                                        <h5>拖拽文件到这里或点击选择</h5>
+                                        <p class="text-muted mb-3">
+                                            支持 PNG, JPG, GIF, WebP, MP4, WebM 格式<br>
+                                            最大 50MB，支持批量上传
+                                        </p>
+                                        <input type="file" id="file-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.tgs" style="display: none;">
+                                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                                            <i class="bi bi-folder2-open"></i> 选择文件
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 文件列表 -->
+                                <div id="file-list" class="mt-4" style="display: none;">
+                                    <h6>已选择的文件</h6>
+                                    <div id="file-items"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-gradient-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-gear-fill"></i> 表情包设置
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="sticker-form">
+                                    <div class="mb-3">
+                                        <label for="pack-name" class="form-label">表情包名称</label>
+                                        <input type="text" class="form-control" id="pack-name" placeholder="例如: MyStickers" required>
+                                        <small class="form-text text-muted">将自动添加 _by_botname 后缀</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="pack-title" class="form-label">显示标题</label>
+                                        <input type="text" class="form-control" id="pack-title" placeholder="例如: 我的表情包" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="default-emoji" class="form-label">默认 Emoji</label>
+                                        <input type="text" class="form-control" id="default-emoji" value="😀" placeholder="😀">
+                                        <small class="form-text text-muted">用于没有指定emoji的贴纸</small>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-success btn-lg" id="create-btn" disabled>
+                                            <i class="bi bi-magic"></i> 创建表情包
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- 进度显示 -->
+                        <div class="card shadow-sm mt-3" id="progress-card" style="display: none;">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-hourglass-split"></i> 处理进度
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         id="progress-bar" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted" id="progress-text">等待开始...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 管理表情包页面 -->
+            <div class="tab-pane" id="manage">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-gradient-info text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-collection"></i> 表情包管理
+                                </h5>
+                                <div>
+                                    <input type="text" class="form-control form-control-sm d-inline-block" 
+                                           id="pack-search" placeholder="输入表情包名称" style="width: 250px;">
+                                    <button class="btn btn-light btn-sm ms-2" id="search-pack-btn">
+                                        <i class="bi bi-search"></i> 搜索
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="pack-info" style="display: none;">
+                                    <!-- 表情包信息将动态加载到这里 -->
+                                </div>
+                                
+                                <div id="pack-placeholder" class="text-center py-5">
+                                    <i class="bi bi-search display-1 text-muted"></i>
+                                    <h5 class="text-muted mt-3">搜索表情包开始管理</h5>
+                                    <p class="text-muted">
+                                        由于 Telegram API 限制，无法自动列出所有表情包<br>
+                                        请输入具体的表情包名称进行搜索
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div class="tab-pane" id="config">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card shadow">
+                            <div class="card-header bg-gradient-warning text-dark">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-sliders"></i> 系统配置
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="config-form">
+                                    <div class="mb-4">
+                                        <label for="bot-token" class="form-label">
+                                            <i class="bi bi-robot"></i> Telegram Bot Token
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="password" class="form-control" id="bot-token" required>
+                                        <div class="form-text">
+                                            从 @BotFather 获取。<a href="https://core.telegram.org/bots/features#creating-a-new-bot" target="_blank">获取指南</a>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="user-id" class="form-label">
+                                            <i class="bi bi-person"></i> Telegram 用户 ID
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="number" class="form-control" id="user-id" required>
+                                        <div class="form-text">
+                                            你的 Telegram 用户 ID。可以从 @userinfobot 获取
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="pack-prefix" class="form-label">
+                                            <i class="bi bi-tag"></i> 表情包名称前缀
+                                        </label>
+                                        <input type="text" class="form-control" id="pack-prefix">
+                                        <div class="form-text">可选，用于统一命名你的表情包</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="default-emoji-config" class="form-label">
+                                            <i class="bi bi-emoji-smile"></i> 默认 Emoji
+                                        </label>
+                                        <input type="text" class="form-control" id="default-emoji-config" value="😀">
+                                        <div class="form-text">新贴纸的默认 emoji</div>
+                                    </div>
+
+                                    <!-- 网络代理设置 -->
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-shield-lock"></i> 网络代理设置
+                                                <small class="text-muted">(可选)</small>
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="proxy-enabled">
+                                                <label class="form-check-label" for="proxy-enabled">
+                                                    启用网络代理
+                                                </label>
+                                            </div>
+                                            
+                                            <div id="proxy-settings" style="display: none;">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="proxy-type" class="form-label">代理类型</label>
+                                                            <select class="form-select" id="proxy-type">
+                                                                <option value="http">HTTP/HTTPS</option>
+                                                                <option value="socks5">SOCKS5</option>
+                                                                <option value="socks4">SOCKS4</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="proxy-host" class="form-label">代理服务器</label>
+                                                            <input type="text" class="form-control" id="proxy-host" placeholder="127.0.0.1">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label for="proxy-port" class="form-label">端口</label>
+                                                            <input type="number" class="form-control" id="proxy-port" placeholder="1080" min="1" max="65535">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-3">
+                                                            <label class="form-label">认证 (可选)</label>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" id="proxy-auth-enabled">
+                                                                <label class="form-check-label" for="proxy-auth-enabled">
+                                                                    需要用户名密码认证
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div id="proxy-auth-settings" style="display: none;">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="proxy-username" class="form-label">用户名</label>
+                                                                <input type="text" class="form-control" id="proxy-username">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="proxy-password" class="form-label">密码</label>
+                                                                <input type="password" class="form-control" id="proxy-password">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="alert alert-info">
+                                                    <i class="bi bi-info-circle"></i>
+                                                    <strong>代理说明:</strong>
+                                                    <ul class="mb-0 mt-2">
+                                                        <li>HTTP/HTTPS: 适用于大部分网络环境</li>
+                                                        <li>SOCKS5: 支持TCP和UDP，功能最完整</li>
+                                                        <li>SOCKS4: 仅支持TCP连接</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-warning btn-lg">
+                                            <i class="bi bi-check-circle"></i> 保存配置
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" id="test-config">
+                                            <i class="bi bi-wifi"></i> 测试连接
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- 配置说明卡片 -->
+                        <div class="card mt-4 border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-info-circle"></i> 配置说明</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6>1. 创建 Telegram Bot</h6>
+                                        <ul class="small">
+                                            <li>打开 Telegram，搜索 @BotFather</li>
+                                            <li>发送 /newbot 创建新机器人</li>
+                                            <li>设置机器人名称</li>
+                                            <li>复制获得的 Bot Token</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>2. 获取用户 ID</h6>
+                                        <ul class="small">
+                                            <li>搜索 @userinfobot</li>
+                                            <li>发送任意消息</li>
+                                            <li>复制返回的用户 ID</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>3. 网络代理设置 (可选)</h6>
+                                        <ul class="small">
+                                            <li>如果需要代理访问Telegram</li>
+                                            <li>支持HTTP/SOCKS5/SOCKS4</li>
+                                            <li>支持用户名密码认证</li>
+                                            <li>配置后会自动应用到所有请求</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 p-2 bg-light rounded">
+                                    <strong>🧪 代理测试:</strong>
+                                    <span class="small">配置代理后，可运行 <code>python3 test_proxy.py</code> 测试连接是否正常</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：编辑贴纸 -->
+    <div class="modal fade" id="editStickerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑贴纸</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-sticker-form">
+                        <input type="hidden" id="edit-file-id">
+                        <input type="hidden" id="edit-pack-name">
+                        <div class="mb-3">
+                            <label for="edit-emoji-list" class="form-label">Emoji 列表</label>
+                            <input type="text" class="form-control" id="edit-emoji-list" placeholder="😀,😃,😄">
+                            <div class="form-text">用逗号分隔多个 emoji</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="save-sticker-edit">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
