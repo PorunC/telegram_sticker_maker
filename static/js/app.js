@@ -338,13 +338,22 @@ class StickerMaker {
     updateBotStatus(isValid, botInfo = null) {
         const statusIcon = document.getElementById('bot-status').querySelector('i');
         const infoText = document.getElementById('bot-info');
+        const configWarning = document.getElementById('config-warning');
         
         if (isValid && botInfo) {
             statusIcon.className = 'bi bi-circle-fill text-success';
             infoText.textContent = `已连接: @${botInfo.username}`;
+            // 隐藏配置警告
+            if (configWarning) {
+                configWarning.classList.add('d-none');
+            }
         } else {
             statusIcon.className = 'bi bi-circle-fill text-danger';
             infoText.textContent = '未配置或连接失败';
+            // 显示配置警告
+            if (configWarning) {
+                configWarning.classList.remove('d-none');
+            }
         }
     }
     
@@ -793,5 +802,17 @@ class StickerMaker {
     }
 }
 
-// 初始化应用
-const stickerMaker = new StickerMaker();
+// 全局变量和函数
+let stickerMaker;
+
+// 全局switchTab函数，供HTML调用
+function switchTab(tabName) {
+    if (stickerMaker) {
+        stickerMaker.switchTab(tabName);
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    stickerMaker = new StickerMaker();
+});

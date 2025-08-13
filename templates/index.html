@@ -49,27 +49,98 @@
         <!-- 状态提示区域 -->
         <div id="alert-container"></div>
 
-        <!-- 配置状态卡片 -->
+        <!-- 配置说明和状态卡片 -->
         <div class="row mb-4">
-            <div class="col-12">
+            <!-- 配置说明 -->
+            <div class="col-lg-8 mb-3">
                 <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-gradient-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle"></i> 快速开始指南
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <div class="row align-items-center">
+                        <div class="row">
                             <div class="col-md-6">
-                                <div class="d-flex align-items-center">
-                                    <div class="status-indicator" id="bot-status">
-                                        <i class="bi bi-circle-fill text-danger"></i>
-                                    </div>
-                                    <div class="ms-3">
-                                        <h6 class="mb-0">Bot 连接状态</h6>
-                                        <small class="text-muted" id="bot-info">未配置</small>
-                                    </div>
-                                </div>
+                                <h6><i class="bi bi-1-circle text-primary"></i> 创建 Telegram Bot</h6>
+                                <ul class="list-unstyled small mb-3">
+                                    <li>• 在Telegram中搜索 <code>@BotFather</code></li>
+                                    <li>• 发送 <code>/newbot</code> 命令</li>
+                                    <li>• 按提示设置Bot名称</li>
+                                    <li>• 复制获得的Bot Token</li>
+                                </ul>
+                                
+                                <h6><i class="bi bi-2-circle text-primary"></i> 获取用户ID</h6>
+                                <ul class="list-unstyled small mb-3">
+                                    <li>• 在Telegram中搜索 <code>@userinfobot</code></li>
+                                    <li>• 发送任意消息</li>
+                                    <li>• 记录返回的数字ID</li>
+                                </ul>
                             </div>
-                            <div class="col-md-6 text-md-end">
-                                <button class="btn btn-outline-primary btn-sm" id="refresh-config">
-                                    <i class="bi bi-arrow-clockwise"></i> 刷新状态
-                                </button>
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-3-circle text-primary"></i> 配置应用</h6>
+                                <ul class="list-unstyled small mb-3">
+                                    <li>• 点击右侧"设置"选项卡</li>
+                                    <li>• 填入Bot Token和用户ID</li>
+                                    <li>• 点击"保存配置"</li>
+                                    <li>• 等待连接成功提示</li>
+                                </ul>
+                                
+                                <h6><i class="bi bi-4-circle text-primary"></i> 制作表情包</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    <li>• 上传图片或视频文件</li>
+                                    <li>• 自动转换为贴纸格式</li>
+                                    <li>• 一键上传到Telegram</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <small>
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>注意：</strong>首次使用必须先完成配置才能制作表情包！
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bot状态卡片 -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-robot"></i> Bot 连接状态
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="status-indicator" id="bot-status">
+                                <i class="bi bi-circle-fill text-danger"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h6 class="mb-0">连接状态</h6>
+                                <small class="text-muted" id="bot-info">未配置</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" id="refresh-config">
+                                <i class="bi bi-arrow-clockwise"></i> 刷新状态
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="switchTab('settings')">
+                                <i class="bi bi-gear"></i> 前往设置
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3 small text-muted">
+                            <div class="d-flex justify-content-between">
+                                <span>支持格式:</span>
+                                <span>PNG, JPG, GIF, WebM</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>最大大小:</span>
+                                <span>50MB</span>
                             </div>
                         </div>
                     </div>
@@ -81,6 +152,25 @@
         <div class="tab-content">
             <!-- 制作表情包页面 -->
             <div class="tab-pane active" id="create">
+                <!-- 配置检查提示 (未配置时显示) -->
+                <div class="alert alert-danger d-none" id="config-warning">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="alert-heading mb-2">
+                                <i class="bi bi-exclamation-triangle"></i> 需要先配置Bot信息
+                            </h5>
+                            <p class="mb-0">
+                                请先按照上方指南完成Telegram Bot配置，然后再制作表情包。
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                            <button class="btn btn-warning" onclick="switchTab('settings')">
+                                <i class="bi bi-gear"></i> 立即配置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row">
                     <div class="col-lg-8">
                         <div class="card shadow-sm">
