@@ -14,6 +14,13 @@ class StickerMaker {
         this.loadConfig();
         this.setupTabs();
         this.setupFileUpload();
+        this.initializeDefaultTab();
+    }
+    
+    // 初始化默认标签页
+    initializeDefaultTab() {
+        // 设置"使用指南"为默认激活的导航项
+        document.querySelector('[data-tab="guide"]').classList.add('active');
     }
     
     // 事件监听器设置
