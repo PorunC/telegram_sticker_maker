@@ -30,8 +30,11 @@ class StickerMaker {
         // 文件上传相关
         document.getElementById('file-input').addEventListener('change', (e) => this.handleFileSelect(e));
         document.getElementById('sticker-form').addEventListener('submit', (e) => this.createStickerPack(e));
-        document.getElementById('select-files-btn').addEventListener('click', () => {
-            document.getElementById('file-input').click();
+        document.getElementById('select-files-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const fileInput = document.getElementById('file-input');
+            this.triggerFileInput(fileInput);
         });
         
         // 表情包管理相关
@@ -95,6 +98,7 @@ class StickerMaker {
     handleButtonClick(e, target) {
         // 文件选择按钮不需要特殊处理，让它正常工作
         if (target.id === 'select-files-btn') {
+            // 确保文件选择按钮能正常工作
             return;
         }
         
@@ -163,21 +167,25 @@ class StickerMaker {
         // 添加触摸支持 - 移动端优化
         this.setupTouchEvents(uploadZone, fileInput);
         
+        // 验证文件输入元素是否正确设置
+        this.validateFileInput(fileInput);
+        
         // 点击事件 - 使用事件委托优化
         uploadZone.addEventListener('click', (e) => {
             // 如果点击的是按钮或按钮内的元素，不处理此事件
             if (e.target.closest('#select-files-btn')) {
+                e.stopPropagation();
                 return;
             }
             e.preventDefault();
-            fileInput.click();
+            this.triggerFileInput(fileInput);
         });
         
         // 键盘支持
         uploadZone.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                fileInput.click();
+                this.triggerFileInput(fileInput);
             }
         });
     }
@@ -199,13 +207,14 @@ class StickerMaker {
             
             // 如果触摸的是按钮，不处理此事件
             if (e.target.closest('#select-files-btn')) {
+                e.stopPropagation();
                 return;
             }
             
             // 如果是短触摸（小于500ms），触发文件选择
             if (touchDuration < 500) {
                 e.preventDefault();
-                fileInput.click();
+                this.triggerFileInput(fileInput);
             }
         }, { passive: false });
         
@@ -213,6 +222,73 @@ class StickerMaker {
         uploadZone.addEventListener('touchcancel', () => {
             uploadZone.classList.remove('dragover');
         }, { passive: true });
+    }
+    
+    // 验证文件输入元素
+    validateFileInput(fileInput) {
+        if (!fileInput) {
+            console.error('文件输入元素未找到');
+            this.showAlert('文件上传功能初始化失败', 'danger');
+            return false;
+        }
+        
+        // 检查元素属性
+        if (!fileInput.hasAttribute('multiple')) {
+            console.warn('文件输入元素缺少 multiple 属性');
+        }
+        
+        if (!fileInput.hasAttribute('accept')) {
+            console.warn('文件输入元素缺少 accept 属性');
+        }
+        
+        // 检查元素是否在DOM中
+        if (!document.contains(fileInput)) {
+            console.error('文件输入元素未正确添加到DOM');
+            return false;
+        }
+        
+        console.log('文件输入元素验证通过');
+        return true;
+    }
+    
+    // 触发文件输入选择
+    triggerFileInput(fileInput) {
+        if (!this.validateFileInput(fileInput)) {
+            return;
+        }
+        
+        console.log('尝试触发文件选择对话框');
+        
+        // 尝试多种方式触发文件选择，确保兼容性
+        try {
+            // 方法1: 直接点击
+            fileInput.click();
+            console.log('使用直接点击方法触发文件选择');
+        } catch (error1) {
+            console.warn('直接点击方法失败:', error1);
+            try {
+                // 方法2: 创建并分发点击事件
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                fileInput.dispatchEvent(clickEvent);
+                console.log('使用事件分发方法触发文件选择');
+            } catch (error2) {
+                console.warn('事件分发方法失败:', error2);
+                try {
+                    // 方法3: 使用 focus 和 触发
+                    fileInput.focus();
+                    const event = new Event('click', { bubbles: true });
+                    fileInput.dispatchEvent(event);
+                    console.log('使用聚焦方法触发文件选择');
+                } catch (error3) {
+                    console.error('所有文件选择方法都失败:', error3);
+                    this.showAlert('无法打开文件选择对话框，请尝试拖拽文件到上传区域', 'warning');
+                }
+            }
+        }
     }
     
     preventDefaults(e) {
