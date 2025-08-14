@@ -97,8 +97,7 @@ class TelegramStickerMaker:
     def _load_webm_converter(self):
         """加载WebM转换器"""
         try:
-            sys.path.insert(0, os.path.dirname(__file__))
-            from telegram_webm_converter import TelegramWebMConverter, TelegramWebMConfig
+            from .webm_converter import TelegramWebMConverter, TelegramWebMConfig
             self.webm_converter = TelegramWebMConverter
             self.webm_config = TelegramWebMConfig
             self.logger.info("✓ WebM converter loaded")
@@ -109,7 +108,7 @@ class TelegramStickerMaker:
     def _load_telegram_uploader(self):
         """加载Telegram API上传器"""
         try:
-            from telegram_api_uploader import TelegramStickerUploader
+            from .api_uploader import TelegramStickerUploader
             self.telegram_uploader_class = TelegramStickerUploader
             self.logger.info("✓ Telegram API uploader loaded")
         except Exception as e:
@@ -119,7 +118,7 @@ class TelegramStickerMaker:
     def _get_proxy_config(self) -> Optional[Dict]:
         """获取代理配置"""
         try:
-            from telegram_api_uploader import load_env_file
+            from .api_uploader import load_env_file
             
             env_vars = load_env_file()
             

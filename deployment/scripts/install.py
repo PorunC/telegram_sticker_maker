@@ -228,11 +228,11 @@ def test_installation():
     
     # 测试核心模块
     total_tests += 1
-    if os.path.exists('telegram_sticker_maker.py'):
+    if os.path.exists('core/sticker_maker.py'):
         try:
             # 简单的导入测试
             import importlib.util
-            spec = importlib.util.spec_from_file_location("telegram_sticker_maker", "telegram_sticker_maker.py")
+            spec = importlib.util.spec_from_file_location("sticker_maker", "core/sticker_maker.py")
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             log('SUCCESS', "核心模块测试通过")
