@@ -93,6 +93,11 @@ class StickerMaker {
     
     // 统一按钮点击处理 - 新增方法
     handleButtonClick(e, target) {
+        // 文件选择按钮不需要特殊处理，让它正常工作
+        if (target.id === 'select-files-btn') {
+            return;
+        }
+        
         // 防止重复点击
         if (target.disabled || target.classList.contains('processing')) {
             e.preventDefault();
@@ -160,6 +165,10 @@ class StickerMaker {
         
         // 点击事件 - 使用事件委托优化
         uploadZone.addEventListener('click', (e) => {
+            // 如果点击的是按钮或按钮内的元素，不处理此事件
+            if (e.target.closest('#select-files-btn')) {
+                return;
+            }
             e.preventDefault();
             fileInput.click();
         });
@@ -187,6 +196,11 @@ class StickerMaker {
         uploadZone.addEventListener('touchend', (e) => {
             const touchDuration = Date.now() - touchStartTime;
             uploadZone.classList.remove('dragover');
+            
+            // 如果触摸的是按钮，不处理此事件
+            if (e.target.closest('#select-files-btn')) {
+                return;
+            }
             
             // 如果是短触摸（小于500ms），触发文件选择
             if (touchDuration < 500) {
