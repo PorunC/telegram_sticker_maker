@@ -39,6 +39,8 @@ class StickerMaker {
         
         // 模态框相关
         document.getElementById('save-sticker-edit').addEventListener('click', () => this.saveStickerEdit());
+        document.getElementById('copy-url-btn').addEventListener('click', () => this.copyPackUrl());
+        document.getElementById('open-telegram-btn').addEventListener('click', () => this.openTelegram());
         
         // 移动端触摸优化 - 事件委托
         this.setupMobileEventDelegation();
@@ -545,17 +547,22 @@ class StickerMaker {
     }
     
     handleTaskCompleted(status) {
-        this.showAlert('表情包创建成功!', 'success');
         this.updateProgress({progress: 100, message: '完成!'});
         
-        if (status.result && status.result.pack_url) {
-            this.showAlert(`表情包链接: <a href="${status.result.pack_url}" target="_blank">${status.result.pack_url}</a>`, 'info');
-        }
-        
+        // 隐藏进度卡片
         setTimeout(() => {
             this.showProgressCard(false);
-            this.resetForm();
-        }, 3000);
+        }, 1000);
+        
+        // 显示成功弹框
+        if (status.result && status.result.pack_url) {
+            this.showSuccessModal(status.result.pack_url);
+        } else {
+            this.showAlert('表情包创建成功!', 'success');
+        }
+        
+        // 重置表单
+        this.resetForm();
     }
     
     handleTaskError(status) {
@@ -928,6 +935,67 @@ class StickerMaker {
     showLoading(show) {
         // 简单的加载状态，可以扩展为全局加载遮罩
         document.body.style.cursor = show ? 'wait' : 'default';
+    }
+    
+    // 显示成功弹框
+    showSuccessModal(packUrl) {
+        // 设置URL到输入框
+        document.getElementById('pack-url-input').value = packUrl;
+        
+        // 存储URL供其他方法使用
+        this.currentPackUrl = packUrl;
+        
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('successModal'));
+        modal.show();
+    }
+    
+    // 复制表情包URL
+    copyPackUrl() {
+        const urlInput = document.getElementById('pack-url-input');
+        
+        try {
+            // 选择文本
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // 兼容移动端
+            
+            // 复制到剪贴板
+            document.execCommand('copy');
+            
+            // 更新按钮状态
+            const copyBtn = document.getElementById('copy-url-btn');
+            const originalHtml = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="bi bi-check"></i> 已复制';
+            copyBtn.classList.add('btn-success');
+            copyBtn.classList.remove('btn-outline-primary');
+            
+            // 2秒后恢复按钮状态
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+                copyBtn.classList.remove('btn-success');
+                copyBtn.classList.add('btn-outline-primary');
+            }, 2000);
+            
+            this.showAlert('链接已复制到剪贴板!', 'success');
+        } catch (err) {
+            // 如果复制失败，使用现代API
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(urlInput.value).then(() => {
+                    this.showAlert('链接已复制到剪贴板!', 'success');
+                }).catch(() => {
+                    this.showAlert('复制失败，请手动复制链接', 'warning');
+                });
+            } else {
+                this.showAlert('复制失败，请手动复制链接', 'warning');
+            }
+        }
+    }
+    
+    // 在Telegram中打开表情包
+    openTelegram() {
+        if (this.currentPackUrl) {
+            window.open(this.currentPackUrl, '_blank');
+        }
     }
 }
 

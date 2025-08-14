@@ -517,6 +517,48 @@
         </div>
     </div>
 
+    <!-- 模态框：表情包创建成功 -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check-circle-fill"></i> 表情包创建成功！
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-emoji-smile display-1 text-success"></i>
+                    </div>
+                    <h4 class="text-success mb-3">🎉 恭喜！</h4>
+                    <p class="mb-4">你的表情包已经成功上传到 Telegram！</p>
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="bi bi-link-45deg"></i> 表情包链接
+                            </h6>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="pack-url-input" readonly>
+                                <button class="btn btn-outline-primary" id="copy-url-btn" type="button">
+                                    <i class="bi bi-clipboard"></i> 复制
+                                </button>
+                            </div>
+                            <small class="text-muted mt-2 d-block">点击上方链接可以直接在 Telegram 中打开表情包</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="open-telegram-btn">
+                        <i class="bi bi-telegram"></i> 在 Telegram 中打开
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
