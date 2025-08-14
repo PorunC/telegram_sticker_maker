@@ -151,7 +151,13 @@ class StickerMaker {
         });
         
         uploadZone.addEventListener('drop', (e) => this.handleDrop(e), false);
-        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('click', (e) => {
+            // 如果点击的是按钮或按钮内的元素，不处理此事件（避免双重触发）
+            if (e.target.closest('button')) {
+                return;
+            }
+            fileInput.click();
+        });
     }
     
     preventDefaults(e) {
