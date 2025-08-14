@@ -128,7 +128,7 @@
                             <button class="btn btn-outline-primary btn-sm" id="refresh-config">
                                 <i class="bi bi-arrow-clockwise"></i> 刷新状态
                             </button>
-                            <button class="btn btn-primary btn-sm" onclick="switchTab('settings')">
+                            <button class="btn btn-primary btn-sm" data-tab="config">
                                 <i class="bi bi-gear"></i> 前往设置
                             </button>
                         </div>
@@ -164,7 +164,7 @@
                             </p>
                         </div>
                         <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                            <button class="btn btn-warning" onclick="switchTab('settings')">
+                            <button class="btn btn-warning" data-tab="config">
                                 <i class="bi bi-gear"></i> 立即配置
                             </button>
                         </div>
@@ -190,7 +190,7 @@
                                             最大 50MB，支持批量上传
                                         </p>
                                         <input type="file" id="file-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.tgs" style="display: none;">
-                                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                                        <button class="btn btn-primary" id="select-files-btn">
                                             <i class="bi bi-folder2-open"></i> 选择文件
                                         </button>
                                     </div>

@@ -30,6 +30,9 @@ class StickerMaker {
         // 文件上传相关
         document.getElementById('file-input').addEventListener('change', (e) => this.handleFileSelect(e));
         document.getElementById('sticker-form').addEventListener('submit', (e) => this.createStickerPack(e));
+        document.getElementById('select-files-btn').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
         
         // 表情包管理相关
         document.getElementById('search-pack-btn').addEventListener('click', () => this.searchStickerPack());
@@ -39,6 +42,68 @@ class StickerMaker {
         
         // 模态框相关
         document.getElementById('save-sticker-edit').addEventListener('click', () => this.saveStickerEdit());
+        
+        // 移动端触摸优化 - 事件委托
+        this.setupMobileEventDelegation();
+    }
+    
+    // 移动端事件委托设置 - 新增方法
+    setupMobileEventDelegation() {
+        // 使用事件委托处理动态生成的按钮
+        document.body.addEventListener('click', (e) => {
+            const target = e.target.closest('button, .btn, .nav-link');
+            if (!target) return;
+            
+            // 添加触摸反馈
+            this.addTouchFeedback(target);
+            
+            // 处理特定按钮点击
+            this.handleButtonClick(e, target);
+        });
+        
+        // 触摸事件委托
+        document.body.addEventListener('touchstart', (e) => {
+            const target = e.target.closest('button, .btn, .nav-link');
+            if (target) {
+                this.addTouchFeedback(target);
+            }
+        }, { passive: true });
+        
+        // 防止双击缩放 - 移动端优化
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+    }
+    
+    // 触摸反馈 - 新增方法
+    addTouchFeedback(element) {
+        element.style.transform = 'scale(0.98)';
+        element.style.opacity = '0.8';
+        
+        setTimeout(() => {
+            element.style.transform = '';
+            element.style.opacity = '';
+        }, 150);
+    }
+    
+    // 统一按钮点击处理 - 新增方法
+    handleButtonClick(e, target) {
+        // 防止重复点击
+        if (target.disabled || target.classList.contains('processing')) {
+            e.preventDefault();
+            return;
+        }
+        
+        // 添加处理状态
+        target.classList.add('processing');
+        setTimeout(() => {
+            target.classList.remove('processing');
+        }, 1000);
     }
     
     // 标签页设置
@@ -89,7 +154,51 @@ class StickerMaker {
         });
         
         uploadZone.addEventListener('drop', (e) => this.handleDrop(e), false);
-        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        // 添加触摸支持 - 移动端优化
+        this.setupTouchEvents(uploadZone, fileInput);
+        
+        // 点击事件 - 使用事件委托优化
+        uploadZone.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.click();
+        });
+        
+        // 键盘支持
+        uploadZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+    }
+    
+    // 触摸事件设置 - 新增方法
+    setupTouchEvents(uploadZone, fileInput) {
+        let touchStartTime = 0;
+        
+        // 触摸开始
+        uploadZone.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+            uploadZone.classList.add('dragover');
+        }, { passive: true });
+        
+        // 触摸结束
+        uploadZone.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            uploadZone.classList.remove('dragover');
+            
+            // 如果是短触摸（小于500ms），触发文件选择
+            if (touchDuration < 500) {
+                e.preventDefault();
+                fileInput.click();
+            }
+        }, { passive: false });
+        
+        // 触摸取消
+        uploadZone.addEventListener('touchcancel', () => {
+            uploadZone.classList.remove('dragover');
+        }, { passive: true });
     }
     
     preventDefaults(e) {
@@ -189,13 +298,36 @@ class StickerMaker {
                     </small>
                 </div>
                 <div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="stickerMaker.removeFile(${index})">
+                    <button class="btn btn-sm btn-outline-danger remove-file-btn" data-file-index="${index}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
             `;
             fileItems.appendChild(item);
         });
+        
+        // 使用事件委托处理删除按钮
+        this.setupFileItemEvents();
+    }
+    
+    // 文件项事件设置 - 新增方法
+    setupFileItemEvents() {
+        const fileItems = document.getElementById('file-items');
+        
+        // 移除旧的事件监听器
+        fileItems.removeEventListener('click', this.handleFileItemClick);
+        
+        // 添加新的事件监听器
+        this.handleFileItemClick = (e) => {
+            const removeBtn = e.target.closest('.remove-file-btn');
+            if (removeBtn) {
+                e.preventDefault();
+                const index = parseInt(removeBtn.dataset.fileIndex);
+                this.removeFile(index);
+            }
+        };
+        
+        fileItems.addEventListener('click', this.handleFileItemClick);
     }
     
     getFilePreview(file) {
@@ -529,7 +661,7 @@ class StickerMaker {
                     </p>
                 </div>
                 <div>
-                    <button class="btn btn-danger btn-sm" onclick="stickerMaker.deleteStickerPack('${pack.name}')">
+                    <button class="btn btn-danger btn-sm delete-pack-btn" data-pack-name="${pack.name}">
                         <i class="bi bi-trash"></i> 删除表情包
                     </button>
                 </div>
@@ -547,12 +679,15 @@ class StickerMaker {
                                     <div class="d-flex justify-content-between align-items-center">
                                         <small class="text-muted">位置 ${sticker.position}</small>
                                         <div>
-                                            <button class="btn btn-sm btn-outline-primary me-1" 
-                                                    onclick="stickerMaker.editSticker('${pack.name}', '${sticker.file_id}', '${sticker.emoji}')">
+                                            <button class="btn btn-sm btn-outline-primary me-1 edit-sticker-btn" 
+                                                    data-pack-name="${pack.name}" 
+                                                    data-file-id="${sticker.file_id}" 
+                                                    data-emoji="${sticker.emoji}">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger" 
-                                                    onclick="stickerMaker.deleteSticker('${pack.name}', '${sticker.file_id}')">
+                                            <button class="btn btn-sm btn-outline-danger delete-sticker-btn" 
+                                                    data-pack-name="${pack.name}" 
+                                                    data-file-id="${sticker.file_id}">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -566,6 +701,41 @@ class StickerMaker {
                 `).join('')}
             </div>
         `;
+        
+        // 设置表情包管理事件
+        this.setupStickerPackEvents();
+    }
+    
+    // 表情包管理事件设置 - 新增方法
+    setupStickerPackEvents() {
+        const packInfo = document.getElementById('pack-info');
+        
+        // 移除旧的事件监听器
+        packInfo.removeEventListener('click', this.handleStickerPackClick);
+        
+        // 添加新的事件监听器
+        this.handleStickerPackClick = (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            
+            e.preventDefault();
+            
+            if (target.classList.contains('delete-pack-btn')) {
+                const packName = target.dataset.packName;
+                this.deleteStickerPack(packName);
+            } else if (target.classList.contains('edit-sticker-btn')) {
+                const packName = target.dataset.packName;
+                const fileId = target.dataset.fileId;
+                const emoji = target.dataset.emoji;
+                this.editSticker(packName, fileId, emoji);
+            } else if (target.classList.contains('delete-sticker-btn')) {
+                const packName = target.dataset.packName;
+                const fileId = target.dataset.fileId;
+                this.deleteSticker(packName, fileId);
+            }
+        };
+        
+        packInfo.addEventListener('click', this.handleStickerPackClick);
     }
     
     hideStickerPack() {

@@ -1,1 +1,1 @@
-web: python start_web.py --port $PORT
+deployment/cloud/Procfile

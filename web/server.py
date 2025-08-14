@@ -22,15 +22,43 @@ from flask import Flask, request, jsonify, render_template, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from telegram_sticker_maker import TelegramStickerMaker, StickerConfig
-from telegram_api_uploader import TelegramStickerUploader, load_env_file
-from telegram_sticker_manager import TelegramStickerManager
+# 获取正确的路径 - 兼容不同的启动方式
+current_dir = Path(__file__).parent
+project_root = current_dir.parent
 
-app = Flask(__name__)
+# 导入核心模块 - 支持不同的启动方式
+try:
+    from core.sticker_maker import TelegramStickerMaker, StickerConfig
+    from core.api_uploader import TelegramStickerUploader, load_env_file
+    from core.sticker_manager import TelegramStickerManager
+except ImportError:
+    # 如果相对导入失败，尝试添加项目根目录到路径
+    import sys
+    sys.path.insert(0, str(project_root))
+    
+    from core.sticker_maker import TelegramStickerMaker, StickerConfig
+    from core.api_uploader import TelegramStickerUploader, load_env_file
+    from core.sticker_manager import TelegramStickerManager
+
+# 根据启动方式确定模板和静态文件路径
+if (project_root / 'web' / 'templates').exists():
+    # 从项目根目录启动的情况
+    template_folder = str(current_dir / 'templates')
+    static_folder = str(current_dir / 'static')
+    upload_folder = str(project_root / 'data' / 'uploads')
+else:
+    # 从web目录启动的情况 (向后兼容)
+    template_folder = 'templates'
+    static_folder = 'static'  
+    upload_folder = 'data/uploads'
+
+app = Flask(__name__, 
+            template_folder=template_folder,
+            static_folder=static_folder)
 CORS(app)
 
-# 配置
-UPLOAD_FOLDER = 'uploads'
+# 配置 - 使用动态路径
+UPLOAD_FOLDER = upload_folder
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm', 'tgs'}
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
 

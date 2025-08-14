@@ -16,7 +16,7 @@ import sys
 import json
 import argparse
 from typing import List, Dict, Any, Optional
-from telegram_api_uploader import TelegramStickerUploader, load_env_file
+from .api_uploader import TelegramStickerUploader, load_env_file
 
 def get_proxy_config_from_env() -> Optional[Dict]:
     """从环境变量获取代理配置"""

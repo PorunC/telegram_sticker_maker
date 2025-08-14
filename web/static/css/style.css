@@ -330,23 +330,244 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* 移动端触摸优化 */
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    -webkit-touch-callout: none;
+}
+
+/* 移动端按钮增强 */
+.btn {
+    min-height: 44px; /* iOS推荐的最小触摸目标 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 按钮处理状态 */
+.btn.processing {
+    opacity: 0.6;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.btn.processing:after {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.btn-sm {
+    min-height: 40px; /* 小按钮也要保证触摸友好 */
+    padding: 8px 16px;
+}
+
+/* 触摸反馈 */
+.btn:active, .upload-zone:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease;
+}
+
+/* 文件上传区域移动端优化 */
+.upload-zone {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+/* 表单控件移动端优化 */
+.form-control {
+    min-height: 44px;
+    font-size: 16px; /* 防止iOS缩放 */
+}
+
+.form-select {
+    min-height: 44px;
+    font-size: 16px;
+}
+
+/* 导航栏移动端优化 */
+.navbar-toggler {
+    border: none;
+    padding: 8px 12px;
+    min-height: 44px;
+}
+
+.nav-link {
+    padding: 12px 16px !important;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
+    body {
+        padding-bottom: 20px;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
     .upload-zone {
-        padding: 30px 15px;
+        padding: 25px 15px;
+        margin: 10px 0;
     }
     
     .upload-icon {
-        font-size: 3rem;
+        font-size: 2.5rem;
     }
     
     .card {
+        margin-bottom: 15px;
+        border-radius: 12px;
+    }
+    
+    /* 按钮组移动端优化 */
+    .btn {
+        border-radius: 25px;
+        padding: 12px 20px;
+        font-size: 16px;
+        margin: 4px 0;
+    }
+    
+    .btn-sm {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    .btn-lg {
+        padding: 16px 24px;
+        font-size: 18px;
+    }
+    
+    /* 网格布局移动端优化 */
+    .col-lg-4, .col-lg-8 {
         margin-bottom: 20px;
     }
     
+    /* 文件项目移动端优化 */
+    .file-item {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .file-preview {
+        width: 40px;
+        height: 40px;
+    }
+    
+    /* 表情包管理移动端优化 */
+    .sticker-item {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .sticker-emoji {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    /* 搜索栏移动端优化 */
+    #pack-search {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+    
+    .card-header .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    /* 模态框移动端优化 */
+    .modal-dialog {
+        margin: 10px;
+        max-width: calc(100vw - 20px);
+    }
+    
+    /* 进度卡片移动端优化 */
+    #progress-card {
+        position: sticky;
+        bottom: 10px;
+        z-index: 100;
+    }
+    
+    /* 导航栏折叠菜单优化 */
+    .navbar-collapse {
+        background: rgba(0, 123, 255, 0.95);
+        border-radius: 10px;
+        margin-top: 10px;
+        padding: 10px;
+    }
+    
+    /* 状态指示器移动端优化 */
+    .status-indicator {
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 警告框移动端优化 */
+    .alert {
+        margin-bottom: 10px;
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    /* 工具栏按钮组 */
+    .btn-group-vertical .btn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* 超小屏幕进一步优化 */
+    .upload-zone {
+        padding: 20px 10px;
+    }
+    
+    .upload-zone h5 {
+        font-size: 1rem;
+    }
+    
+    .upload-zone p {
+        font-size: 0.875rem;
+    }
+    
     .btn {
-        border-radius: 20px;
-        padding: 8px 16px;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .btn-group .btn {
+        width: auto;
+        margin-bottom: 0;
+    }
+    
+    .card-header h5, .card-header h6 {
+        font-size: 1rem;
+    }
+    
+    /* 表格响应式 */
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    /* 输入组优化 */
+    .input-group .form-control {
+        margin-bottom: 5px;
     }
 }
 
